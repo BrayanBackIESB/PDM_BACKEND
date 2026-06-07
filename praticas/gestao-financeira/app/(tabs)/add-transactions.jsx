@@ -70,16 +70,25 @@ export default function AddTransactions() {
 
     setSubmitting(true);
     try {
+      console.log("Enviando transação para o servidor:", form); // Mostra o que está saindo
+      
       await addTransaction({
         description: form.description.trim(),
         value: form.value,
-        date: form.date,
+        date: form.date, 
         categoryId: form.categoryId,
       });
+      
       setForm(buildInitialForm());
       Alert.alert("Transação adicionada com sucesso!");
     } catch (e) {
-      Alert.alert("Erro ao salvar", e.message ?? "Tente novamente.");
+      // Estes logs vão aparecer no terminal do VS Code onde o Expo está rodando
+      console.log("=== ERRO NA TRANSAÇÃO ===");
+      console.log("MENSAGEM:", e.message);
+      console.log("DADOS DO SERVIDOR:", e.response?.data);
+      console.log("=========================");
+      
+      Alert.alert("Erro ao salvar", "Olhe o terminal do Expo para ver o erro real.");
     } finally {
       setSubmitting(false);
     }

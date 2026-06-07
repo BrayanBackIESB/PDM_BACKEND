@@ -37,6 +37,7 @@ const PRESET_COLORS = [
  * @returns {JSX.Element}
  */
 export default function CategoriesScreen() {
+  // Chamada única do contexto
   const { categories, loading, addCategory, removeCategory } =
     useContext(MoneyContext);
 
@@ -53,6 +54,7 @@ export default function CategoriesScreen() {
     setBackground(PRESET_COLORS[0]);
   };
 
+  // Função handleCreate única (com validações)
   const handleCreate = async () => {
     if (!name.trim() || name.trim().length < 2) {
       Alert.alert("Informe um identificador (mín. 2 letras, sem espaços).");
