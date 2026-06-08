@@ -1,5 +1,6 @@
 // prisma/seed.js
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -11,6 +12,13 @@ const defaultCategories = [
   { name: "travel",    displayName: "Viagens",     icon: "airplanemode-active", background: "#82C9DE", isIncome: false, isDefault: true },
 ];
 
+// Usuário demo para facilitar o login durante os testes (Postman / app).
+const demoUser = {
+  name: "Usuário Demo",
+  email: "demo@gestao.com",
+  password: "demo123",
+};
+
 async function main() {
   for (const c of defaultCategories) {
     await prisma.category.upsert({
@@ -19,7 +27,16 @@ async function main() {
       create: c,
     });
   }
+
+  const passwordHash = await bcrypt.hash(demoUser.password, 10);
+  await prisma.user.upsert({
+    where: { email: demoUser.email },
+    update: {},
+    create: { name: demoUser.name, email: demoUser.email, passwordHash },
+  });
+
   console.log("Seed concluído.");
+  console.log(`Usuário demo: ${demoUser.email} / ${demoUser.password}`);
 }
 
 main()

@@ -8,23 +8,25 @@ import {
 } from "react-native";
 import { MoneyContext } from "../../contexts/GlobalState";
 import SummaryItem from "../../components/SummaryItem";
+import MonthYearFilter from "../../components/MonthYearFilter";
+import PieChart from "../../components/PieChart";
 import { globalStyles } from "../../styles/globalStyles";
 import { colors } from "../../constants/colors";
 
 /**
  * Tela "Resumo".
  *
- * Itera sobre as categorias vindas do servidor (não há mais lista hardcoded)
- * e calcula:
- *  - totais por categoria (somatório dos `value` das transações da categoria);
- *  - saldo final = soma das transações de categorias `isIncome` menos as demais.
+ * Mostra, para o período selecionado (filtro Mês/Ano):
+ *  - um gráfico de pizza com a distribuição das despesas por categoria;
+ *  - os totais por categoria;
+ *  - o saldo final (receitas − despesas).
  *
  * @returns {JSX.Element}
  */
 export default function Summary() {
   const { transactions, categories, loading } = useContext(MoneyContext);
 
-  const { totalsById, balance } = useMemo(() => {
+  const { totalsById, balance, chartData } = useMemo(() => {
     const acc = {};
     let saldo = 0;
 
@@ -42,7 +44,17 @@ export default function Summary() {
         saldo -= numericValue;
       }
     }
-    return { totalsById: acc, balance: saldo };
+
+    // Gráfico: apenas despesas (categorias que não são receita).
+    const data = categories
+      .filter((c) => !c.isIncome)
+      .map((c) => ({
+        label: c.displayName,
+        value: acc[c.id] ?? 0,
+        color: c.background,
+      }));
+
+    return { totalsById: acc, balance: saldo, chartData: data };
   }, [transactions, categories]);
 
   if (loading && categories.length === 0) {
@@ -58,7 +70,13 @@ export default function Summary() {
 
   return (
     <View style={globalStyles.screenContainer}>
+      <MonthYearFilter />
       <ScrollView style={globalStyles.content}>
+        <Text style={styles.sectionTitle}>Despesas por categoria</Text>
+        <PieChart data={chartData} />
+
+        <View style={globalStyles.line} />
+        <Text style={styles.sectionTitle}>Totais</Text>
         {categories.map((category) => (
           <SummaryItem
             key={category.id}
@@ -66,6 +84,7 @@ export default function Summary() {
             value={totalsById[category.id] ?? 0}
           />
         ))}
+
         <View style={globalStyles.line} />
         <View style={styles.balance}>
           <Text style={styles.balanceText}>Saldo</Text>
@@ -82,10 +101,16 @@ export default function Summary() {
 }
 
 const styles = StyleSheet.create({
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.primaryText,
+    marginVertical: 8,
+  },
   balance: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 8,
   },
   balanceText: {
     fontSize: 18,
