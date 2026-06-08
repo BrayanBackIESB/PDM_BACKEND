@@ -1,21 +1,40 @@
-// contexts/GlobalState.jsx (essência)
-import { createContext, useCallback, useEffect, useState } from "react";
+// contexts/GlobalState.jsx
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { api } from "../services/api";
+import { AuthContext } from "./AuthContext";
 
 export const MoneyContext = createContext();
 
+const now = new Date();
+
 export default function GlobalState({ children }) {
+  const { isAuthenticated } = useContext(AuthContext);
+
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Filtro de período. `month` null = todos os meses do ano selecionado.
+  const [filter, setFilter] = useState({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+  });
+
   const refresh = useCallback(async () => {
-    setLoading(true); setError(null);
+    if (!isAuthenticated) return;
+    setLoading(true);
+    setError(null);
     try {
       const [cats, txs] = await Promise.all([
         api.listCategories(),
-        api.listTransactions(),
+        api.listTransactions(filter),
       ]);
       setCategories(cats);
       setTransactions(txs);
@@ -24,21 +43,34 @@ export default function GlobalState({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated, filter]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  // Recarrega ao autenticar e sempre que o filtro mudar.
+  useEffect(() => {
+    if (isAuthenticated) {
+      refresh();
+    } else {
+      setTransactions([]);
+      setCategories([]);
+      setLoading(false);
+    }
+  }, [isAuthenticated, refresh]);
 
   const addTransaction = useCallback(async (data) => {
-    // Chama a API para criar no banco de dados
     const newTx = await api.createTransaction(data);
-    // Atualiza a lista na tela do aplicativo
-    setTransactions((prev) => [...prev, newTx]);
+    setTransactions((prev) => [newTx, ...prev]);
+  }, []);
+
+  const updateTransaction = useCallback(async (id, data) => {
+    const updated = await api.updateTransaction(id, data);
+    setTransactions((prev) =>
+      prev.map((tx) => (tx.id === id ? updated : tx))
+    );
+    return updated;
   }, []);
 
   const removeTransaction = useCallback(async (id) => {
-    // Chama a API para deletar no banco de dados
     await api.deleteTransaction(id);
-    // Remove o item da lista na tela do aplicativo
     setTransactions((prev) => prev.filter((tx) => tx.id !== id));
   }, []);
 
@@ -53,10 +85,22 @@ export default function GlobalState({ children }) {
   }, []);
 
   return (
-    <MoneyContext.Provider value={{
-      transactions, categories, loading, error, refresh,
-      addTransaction, removeTransaction, addCategory, removeCategory,
-    }}>
+    <MoneyContext.Provider
+      value={{
+        transactions,
+        categories,
+        loading,
+        error,
+        filter,
+        setFilter,
+        refresh,
+        addTransaction,
+        updateTransaction,
+        removeTransaction,
+        addCategory,
+        removeCategory,
+      }}
+    >
       {children}
     </MoneyContext.Provider>
   );

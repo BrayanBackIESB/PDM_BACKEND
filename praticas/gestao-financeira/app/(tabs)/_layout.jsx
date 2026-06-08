@@ -1,9 +1,20 @@
 import { Tabs } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useContext } from "react";
+import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 import { colors } from "../../constants/colors";
+import { AuthContext } from "../../contexts/AuthContext";
 
 export default function TabsLayout() {
+  const { logout } = useContext(AuthContext);
+
+  const confirmLogout = () => {
+    Alert.alert("Sair", "Deseja encerrar a sessão?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Sair", style: "destructive", onPress: () => logout() },
+    ]);
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -11,6 +22,19 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: colors.primary },
         headerTintColor: colors.primaryContrast,
         headerTitleAlign: "center",
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={confirmLogout}
+            hitSlop={8}
+            style={styles.logout}
+          >
+            <MaterialIcons
+              name="logout"
+              size={24}
+              color={colors.primaryContrast}
+            />
+          </TouchableOpacity>
+        ),
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.inactive,
         tabBarStyle: {
@@ -71,6 +95,9 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  logout: {
+    marginRight: 16,
+  },
   addButton: {
     display: "flex",
     alignItems: "center",
